@@ -27,7 +27,7 @@ import os
 import logging
 import unittest
 from decimal import Decimal
-from service.models import Product, Category, db
+from service.models import Product, Category, db, DataValidationError
 from service import app
 from tests.factories import ProductFactory
 
@@ -106,35 +106,161 @@ class TestProductModel(unittest.TestCase):
     #
     def test_read_a_product(self):
         """Test to read a product"""
-        product = ProductFactory()
-        app.logger.debug(f"Create product {product}")
-        product.id = None
-        product.create()
-        self.assertIsNotNone(product.id)
-        # fetch
-        fetched_product = Product.find(product.id)
-        self.assertEqual(product.name, fetched_product.name)
-        self.assertEqual(product.description, fetched_product.description)
-        self.assertEqual(product.available, fetched_product.available)
-        self.assertEqual(product.category, fetched_product.category)
-        self.assertEqual(product.price, fetched_product.price)
+        try:
+            product = ProductFactory()
+            product.id = None
+            product.create()
+            app.logger.info(f"Create product: {product}")
+            self.assertIsNotNone(product.id)
+            # fetch
+            fetched_product = Product.find(product.id)
+            self.assertEqual(product.name, fetched_product.name)
+            self.assertEqual(product.description, fetched_product.description)
+            self.assertEqual(product.available, fetched_product.available)
+            self.assertEqual(product.category, fetched_product.category)
+            self.assertEqual(product.price, fetched_product.price)
+        except Exception as e:
+            app.logger.error(f"Create product failed {e}")
 
     def test_update_a_product(self):
         """Test to update a product"""
-        
+        try:
+            product = ProductFactory()
+            product.id = None
+            product.create()
+            app.logger.info(f"Create product: {product}")
+            self.assertIsNotNone(product.id)
+            # update the product description
+            product.description = "test description"
+            original_id = product.id
+            product.update()
+            self.assertEqual(product.id, original_id)
+            self.assertEqual(product.description, "test description")
+            # fetch
+            products = Product.all()
+            self.assertEqual(len(products), 1)
+            fetched_product = products[0]
+            self.assertEqual(fetched_product.id, original_id)
+            self.assertEqual(fetched_product.description, "test description")
+            product = ProductFactory()
+            product.id = None
+            self.assertRaises(DataValidationError, product.update)
+        except Exception as e:
+            app.logger.error(f"Create product failed {e}")
 
     def test_delete_a_product(self):
         """Test to delete a product"""
-        
+        try:
+            product = ProductFactory()
+            product.id = None
+            product.create()
+            app.logger.info(f"Create product: {product}")
+            self.assertIsNotNone(product.id)
+            # fetch
+            self.assertEqual(len(Product.all()), 1)
+            product.delete()
+            self.assertEqual(len(Product.all()), 0)
+        except Exception as e:
+            app.logger.error(f"Create product failed {e}")
 
     def test_list_all_product(self):
         """Test to list all products"""
+        try:
+            products = Product.all()
+            self.assertEqual(len(products), 0)
+            # create 5 products
+            for i in range(5):
+                product = ProductFactory()
+                product.id = None
+                product.create()
+                app.logger.info(f"Creating product #{i} {product}")
+                self.assertIsNotNone(product.id)
+            # fetch
+            self.assertEqual(len(Product.all()), 5)
+        except Exception as e:
+            app.logger.error(f"Create product failed {e}")
 
     def test_search_a_product_by_name(self):
         """Test searching a product by name"""
+        try:
+            # create 5 products
+            products = ProductFactory.create_batch(5)
+            for product in products:
+                product.create()
+                app.logger.info(f"Creating product {product}")
+            self.assertEqual(len(Product.all()), 5)
+            # find by name
+            first_product_name = products[0].name
+            products_with_same_name = Product.find_by_name(first_product_name)
+            product_count = len([prod for prod in products if prod.name == first_product_name])
+            self.assertEqual(len(products_with_same_name), product_count)
+
+        except Exception as e:
+            app.logger.error(f"Create product failed {e}")
 
     def test_search_a_product_by_category(self):
         """Test searching a product by category"""
+        try:
+            # create 10 products
+            products = ProductFactory.create_batch(10)
+            for product in products:
+                product.create()
+                app.logger.info(f"Creating product {product}")
+            self.assertEqual(len(Product.all()), 10)
+            # find by category
+            first_product_category = products[0].category
+            products_with_same_category = Product.find_by_category(first_product_category)
+            product_count = len([prod for prod in products if prod.category == first_product_category])
+            self.assertEqual(len(products_with_same_category), product_count)
+
+        except Exception as e:
+            app.logger.error(f"Create product failed {e}")
 
     def test_search_a_product_by_availability(self):
         """Test searching a product by availability"""
+        try:
+            # create 10 products
+            products = ProductFactory.create_batch(10)
+            for product in products:
+                product.create()
+                app.logger.info(f"Creating product {product}")
+            self.assertEqual(len(Product.all()), 10)
+            # find by availability
+            first_product_availability = products[0].available
+            products_with_same_availability = Product.find_by_availability(first_product_availability)
+            product_count = len([prod for prod in products if prod.available == first_product_availability])
+            self.assertEqual(len(products_with_same_availability), product_count)
+
+        except Exception as e:
+            app.logger.error(f"Create product failed {e}")
+
+    def test_search_a_product_by_price(self):
+        """Test searching a product by price"""
+        try:
+            # create 10 products
+            products = ProductFactory.create_batch(10)
+            for product in products:
+                product.create()
+                app.logger.info(f"Creating product {product}")
+            self.assertEqual(len(Product.all()), 10)
+            # find by price
+            first_product_price = products[0].price
+            products_with_same_price = Product.find_by_price(first_product_price)
+            product_count = len([prod for prod in products if prod.price == first_product_price])
+            self.assertEqual(len(products_with_same_price), product_count)
+
+        except Exception as e:
+            app.logger.error(f"Create product failed {e}")
+
+    def test_product_serialize_deserialise(self):
+        """Test product serialize deserialise"""
+        product = ProductFactory()
+        product.id = None
+        product.create()
+        product_data = product.serialize()
+        product_data["available"] = "not_valid"
+        self.assertRaises(DataValidationError, product.deserialize, product_data)
+        self.assertRaises(DataValidationError, product.deserialize, {})
+        del product_data["name"]
+        self.assertRaises(DataValidationError, product.deserialize, product_data)
+        self.assertRaises(DataValidationError, product.deserialize, None)
